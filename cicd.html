@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Pipeline: Animated Stages, Arrows, and Pulsing Environments</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%;
+            max-width: 900px;
+        }
+        .stages {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 100%;
+        }
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            background-color: white;
+        }
+        .circle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #2ecc71;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .circle.active::before {
+            opacity: 0.7;
+        }
+        .circle span {
+            z-index: 1;
+        }
+        .circle.running {
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            100% { box-shadow: 0 0 0 20px rgba(52, 152, 219, 0); }
+        }
+        .arrow-container {
+            flex-grow: 1;
+            height: 3px;
+            background-color: #333;
+            position: relative;
+            margin: 0 10px;
+        }
+        .arrow {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid #3498db;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .arrow.active {
+            opacity: 1;
+            animation: moveArrow 1.5s linear;
+        }
+        @keyframes moveArrow {
+            0% { left: 0; }
+            100% { left: calc(100% - 10px); }
+        }
+        .env-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .environments {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+        }
+        .env {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: transform 0.3s ease;
+        }
+        .env:hover {
+            transform: scale(1.1);
+        }
+        .env.deploying {
+            animation: envPulse 1s infinite alternate;
+        }
+        @keyframes envPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+        }
+        .status-text {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 27px;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="pipeline">
+        <div class="stages">
+            <div class="stage">
+                <div id="build" class="circle"><span>Build</span></div>
+            </div>
+            <div class="arrow-container"><div class="arrow"></div></div>
+            <div class="stage">
+                <div id="test" class="circle"><span>Test</span></div>
+            </div>
+            <div class="arrow-container"><div class="arrow"></div></div>
+            <div class="stage env-group">
+                <div id="deploy" class="circle"><span>Deploy</span></div>
+                <div class="environments">
+                    <div id="dev" class="env" style="background-color: #f39c12;">Dev</div>
+                    <div id="staging" class="env" style="background-color: #9b59b6;">Staging</div>
+                    <div id="prod" class="env" style="background-color: #e67e22;">Prod</div>
+                </div>
+            </div>
+        </div>
+        <div class="status-text"></div>
+    </div>
+
+    <script>
+        const stages = ['build', 'test', 'deploy'];
+        const environments = ['dev', 'staging', 'prod'];
+        let currentStage = -1;
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function showStatus(message, duration = 2000) {
+            const statusElement = document.querySelector('.status-text');
+            statusElement.textContent = message;
+            statusElement.style.animation = `fadeInOut ${duration}ms ease-in-out`;
+            return sleep(duration);
+        }
+
+        async function runStage(index) {
+            currentStage = index;
+            const stage = document.getElementById(stages[index]);
+            stage.classList.add('running');
+            await showStatus(`${stages[index].charAt(0).toUpperCase() + stages[index].slice(1)} stage is running...`);
+            stage.classList.remove('running');
+            stage.classList.add('active');
+            await showStatus(`${stages[index].charAt(0).toUpperCase() + stages[index].slice(1)} stage completed successfully.`);
+
+            if (index < stages.length - 1) {
+                const arrow = stage.parentNode.nextElementSibling.querySelector('.arrow');
+                arrow.classList.add('active');
+                await sleep(1500);
+                arrow.classList.remove('active');
+            }
+
+            if (index === stages.length - 1) {
+                for (const env of environments) {
+                    const envElement = document.getElementById(env);
+                    envElement.classList.add('deploying');
+                    await showStatus(`Deploying to ${env} environment...`, 2000);
+                    envElement.classList.remove('deploying');
+                    await showStatus(`Deployed to ${env} successfully.`, 1000);
+                }
+            }
+        }
+
+        async function runPipeline() {
+            while (true) {
+                for (let i = 0; i < stages.length; i++) {
+                    await runStage(i);
+                }
+                // Reset the pipeline
+                document.querySelectorAll('.circle').forEach(circle => circle.classList.remove('active'));
+                await showStatus('Pipeline completed. Restarting...', 2000);
+            }
+        }
+
+        runPipeline();
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive IaC Provisioning Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #codeEditor, #console {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #console {
+            background-color: #222;
+            color: #0f0;
+            overflow-y: auto;
+        }
+        #infrastructure {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .resource {
+            width: 150px;
+            height: 100px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .resource h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+        .resource p {
+            margin: 5px 0 0;
+            font-size: 12px;
+        }
+        .resource .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .resource:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive IaC Provisioning Visualization</h1>
+        <h2>Infrastructure Code:</h2>
+        <textarea id="codeEditor" readonly>
+# Define VPC
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+# Define Subnet
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+}
+
+# Define Security Group for Web Server
+resource "aws_security_group" "allow_http" {
+  name        = "allow_http"
+  description = "Allow HTTP inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Define EC2 Instance
+resource "aws_instance" "web_server" {
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.main.id
+
+  vpc_security_group_ids = [aws_security_group.allow_http.id]
+
+  tags = {
+    Name = "WebServer"
+  }
+}
+
+# Define Elastic IP
+resource "aws_eip" "web_server_eip" {
+  instance = aws_instance.web_server.id
+  vpc      = true
+}
+
+# Define RDS Subnet Group
+resource "aws_db_subnet_group" "default" {
+  name       = "main"
+  subnet_ids = [aws_subnet.main.id, aws_subnet.main.id]  # You'd typically use two different subnets
+}
+
+# Define Security Group for Database
+resource "aws_security_group" "allow_mysql" {
+  name        = "allow_mysql"
+  description = "Allow MySQL inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.allow_http.id]
+  }
+}
+
+# Define RDS Instance
+resource "aws_db_instance" "default" {
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  engine               = "mysql"
+  engine_version       = "5.7"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "admin"
+  password             = "password"  # In practice, use a secure method to manage passwords
+  parameter_group_name = "default.mysql5.7"
+  db_subnet_group_name = aws_db_subnet_group.default.name
+  vpc_security_group_ids = [aws_security_group.allow_mysql.id]
+  skip_final_snapshot  = true
+}
+        </textarea>
+        <button onclick="provisionInfrastructure()">Provision Infrastructure</button>
+        <h2>Provisioning Console:</h2>
+        <div id="console"></div>
+        <h2>Infrastructure:</h2>
+        <div id="infrastructure"></div>
+    </div>
+
+    <script>
+        const consoleOutput = document.getElementById('console');
+        const infrastructure = document.getElementById('infrastructure');
+
+        function log(message) {
+            consoleOutput.innerHTML += `${message}<br>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function createResource(name, details, explanation) {
+            const resource = document.createElement('div');
+            resource.className = 'resource';
+            resource.innerHTML = `
+                <h3>${name}</h3>
+                <p>${details}</p>
+                <span class="tooltip">${explanation}</span>
+            `;
+            infrastructure.appendChild(resource);
+            return resource;
+        }
+
+        async function provisionInfrastructure() {
+            infrastructure.innerHTML = '';
+            consoleOutput.innerHTML = '';
+
+            log("Starting infrastructure provisioning...");
+
+            // Provision VPC
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            log("Creating VPC...");
+            createResource("VPC", "CIDR: 10.0.0.0/16", "Virtual Private Cloud: Isolates your resources in a virtual network.");
+
+            // Provision Subnet
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            log("Creating Subnet...");
+            createResource("Subnet", "CIDR: 10.0.1.0/24", "Subnet: A range of IP addresses in your VPC where you can place resources.");
+
+            // Provision Security Group for Web Server
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            log("Creating Web Server Security Group...");
+            createResource("Web SG", "Allow HTTP (Port 80)", "Security Group: Acts as a virtual firewall for your instance to control inbound and outbound traffic.");
+
+            // Provision EC2 Instance
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            log("Launching EC2 Instance...");
+            createResource("EC2 Instance", "t2.micro", "Elastic Compute Cloud: Virtual server in the cloud for running applications.");
+
+            // Provision Elastic IP
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            log("Allocating Elastic IP...");
+            createResource("Elastic IP", "Associated with EC2", "Elastic IP: Static IPv4 address designed for dynamic cloud computing.");
+
+            // Provision DB Subnet Group
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            log("Creating DB Subnet Group...");
+            createResource("DB Subnet Group", "For RDS", "DB Subnet Group: Specifies subnets and IP ranges where your RDS instance can be placed.");
+
+            // Provision Security Group for Database
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            log("Creating Database Security Group...");
+            createResource("DB SG", "Allow MySQL (Port 3306)", "Database Security Group: Controls access to your RDS instance, allowing inbound traffic on MySQL port.");
+
+            // Provision RDS Instance
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            log("Launching RDS Instance...");
+            createResource("RDS Instance", "MySQL 5.7, t2.micro", "Relational Database Service: Managed database service for MySQL, easy to set up and scale.");
+
+            log("Infrastructure provisioning complete!");
+        }
+    </script>
+</body>
+</html>
