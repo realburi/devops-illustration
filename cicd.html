@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
+            /* display: flex; */
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -17,9 +17,12 @@
         .pipeline {
             display: flex;
             flex-direction: column;
+            justify-content: center;
             align-items: center;
             width: 90%;
             max-width: 900px;
+            height: 100vh;
+            margin: auto;
         }
         .stages {
             display: flex;
@@ -146,8 +149,19 @@
             100% { opacity: 0; transform: translateY(10px); }
         }
     </style>
+    <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
+    <header>
+        <nav>
+            <ul class="navbar">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="iac.html">Infrastructure as Code (IaC)</a></li>
+                <li><a href="cicd.html">CI/CD</a></li>
+            </ul>
+        </nav>
+    </header>
     <div class="pipeline">
         <div class="stages">
             <div class="stage">
