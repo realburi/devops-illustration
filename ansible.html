@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Workflow and Console Output</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container-ansible {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #workflow {
+            width: 50%;
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #terminal {
+            width: 45%;
+            height: 400px;
+            background-color: #282c34;
+            border-radius: 5px;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        #output {
+            font-family: monospace;
+            font-size: 14px;
+            color: #abb2bf;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background-color: #abb2bf;
+            animation: blink 0.7s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .step {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        .step.active {
+            opacity: 1;
+            font-weight: bold;
+        }
+        .step-1 { background-color: #e6f7ff; }
+        .step-2 { background-color: #fff7e6; }
+        .step-3 { background-color: #f6ffed; }
+        .step-4 { background-color: #fff1f0; }
+        .step-5 { background-color: #f9f0ff; }
+        #replayBtn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #replayBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html">Home</a>
+        <a href="iac.html">IaC Provisioning</a>
+        <a href="cicd.html">CI/CD Pipeline</a>
+        <a href="monitoring.html">Monitoring</a>
+        <a href="#" class="active">Ansible</a>
+    </div>
+    <h1>Ansible Workflow and Console Output</h1>
+    <div class="container-ansible">
+        <div id="workflow">
+            <h2>Ansible Workflow</h2>
+            <div class="step step-1">1. Read Playbook and Inventory</div>
+            <div class="step step-2">2. Establish SSH Connections</div>
+            <div class="step step-3">3. Transfer Ansible Modules</div>
+            <div class="step step-4">4. Execute Modules on Managed Nodes</div>
+            <div class="step step-5">5. Collect Results and Generate Report</div>
+        </div>
+        <div id="terminal">
+            <div id="output"></div>
+            <span class="cursor"></span>
+        </div>
+    </div>
+    <button id="replayBtn">Replay Animation</button>
+
+    <script>
+        const output = `$ ansible-playbook my_playbook.yml
+
+PLAY [Web Servers] ******************************************************************
+
+TASK [Gathering Facts] ***************************************************************
+ok: [web1.example.com]
+ok: [web2.example.com]
+
+TASK [Install Apache] ****************************************************************
+changed: [web1.example.com]
+changed: [web2.example.com]
+
+TASK [Start Apache Service] **********************************************************
+ok: [web1.example.com]
+ok: [web2.example.com]
+
+TASK [Deploy Web Content] ************************************************************
+changed: [web1.example.com]
+changed: [web2.example.com]
+
+PLAY RECAP **************************************************************************
+web1.example.com : ok=4  changed=2  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0
+web2.example.com : ok=4  changed=2  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0`;
+
+        const terminalOutput = document.getElementById('output');
+        const steps = document.querySelectorAll('.step');
+        const replayBtn = document.getElementById('replayBtn');
+        let index = 0;
+        let currentStep = 0;
+        let animationInterval;
+
+        function typeText() {
+            if (index < output.length) {
+                terminalOutput.textContent += output.charAt(index);
+                index++;
+
+                // Update workflow steps based on console output
+                if (index === output.indexOf("PLAY [Web Servers]")) {
+                    updateWorkflowStep(0);
+                } else if (index === output.indexOf("TASK [Gathering Facts]")) {
+                    updateWorkflowStep(1);
+                } else if (index === output.indexOf("TASK [Install Apache]")) {
+                    updateWorkflowStep(2);
+                } else if (index === output.indexOf("TASK [Start Apache Service]")) {
+                    updateWorkflowStep(3);
+                } else if (index === output.indexOf("PLAY RECAP")) {
+                    updateWorkflowStep(4);
+                }
+            } else {
+                clearInterval(animationInterval);
+                replayBtn.style.display = 'block';
+            }
+        }
+
+        function updateWorkflowStep(step) {
+            steps[currentStep].classList.remove('active');
+            steps[step].classList.add('active');
+            currentStep = step;
+        }
+
+        function startAnimation() {
+            index = 0;
+            currentStep = 0;
+            terminalOutput.textContent = '';
+            steps.forEach(step => step.classList.remove('active'));
+            replayBtn.style.display = 'none';
+            animationInterval = setInterval(typeText, 10);
+        }
+
+        replayBtn.addEventListener('click', startAnimation);
+        replayBtn.style.display = 'none';
+        startAnimation();
+    </script>
+</body>
+</html>

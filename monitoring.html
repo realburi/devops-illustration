@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Monitoring Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        body {
+
+            /* display: flex;
+            justify-content: center;
+            align-items: center; */
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .container {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 1200px;
+        }
+        .charts {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .chart-container {
+            width: calc(50% - 10px);
+            height: 250px;
+            margin-bottom: 20px;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .metric {
+            text-align: center;
+            margin: 10px;
+            flex-basis: calc(25% - 20px);
+        }
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .ci-cd-status {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .ci-cd-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .status {
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .success { background-color: #28a745; color: white; }
+        .failure { background-color: #dc3545; color: white; }
+        .in-progress { background-color: #ffc107; color: black; }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html">Home</a>
+        <a href="iac.html">IaC Provisioning</a>
+        <a href="cicd.html">CI/CD Pipeline</a>
+        <a href="#" class="active">Monitoring</a>
+        <a href="ansible.html">Ansible</a>
+    </div>
+    <div class="container">
+        <h2>DevOps Monitoring Dashboard</h2>
+        <div class="charts">
+            <div class="chart-container">
+                <canvas id="cpuChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="mqChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="nginxChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="apmChart"></canvas>
+            </div>
+        </div>
+        <div class="metrics">
+            <div class="metric">
+                <div>Memory Usage</div>
+                <div class="value" id="memoryUsage">0%</div>
+            </div>
+            <div class="metric">
+                <div>Disk I/O</div>
+                <div class="value" id="diskIO">0 MB/s</div>
+            </div>
+            <div class="metric">
+                <div>Network Traffic</div>
+                <div class="value" id="networkTraffic">0 Mbps</div>
+            </div>
+            <div class="metric">
+                <div>Messages Published</div>
+                <div class="value" id="messagesPublished">0</div>
+            </div>
+            <div class="metric">
+                <div>Messages Consumed</div>
+                <div class="value" id="messagesConsumed">0</div>
+            </div>
+            <div class="metric">
+                <div>Active Connections</div>
+                <div class="value" id="activeConnections">0</div>
+            </div>
+            <div class="metric">
+                <div>Error Rate</div>
+                <div class="value" id="errorRate">0%</div>
+            </div>
+            <div class="metric">
+                <div>Avg Response Time</div>
+                <div class="value" id="avgResponseTime">0 ms</div>
+            </div>
+        </div>
+        <div class="ci-cd-status">
+            <h3>CI/CD Pipeline Status</h3>
+            <div id="cicdStatus"></div>
+        </div>
+        <button onclick="toggleSimulation()">Start Simulation</button>
+    </div>
+
+    <script>
+        let cpuChart, mqChart, nginxChart, apmChart;
+        let simulationInterval;
+        let isSimulationRunning = false;
+        const dataPoints = 20;
+        let totalMessagesPublished = 0;
+        let totalMessagesConsumed = 0;
+
+        function initCharts() {
+            cpuChart = createChart('cpuChart', 'CPU Usage', 'rgb(75, 192, 192)');
+            mqChart = createChart('mqChart', 'Message Queue Activity', 'rgb(255, 99, 132)', true);
+            nginxChart = createNginxChart();
+            apmChart = createAPMChart();
+        }
+
+        function createChart(canvasId, label, color, includeSecondDataset = false) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const datasets = [{
+                label: includeSecondDataset ? 'Messages Published' : label,
+                data: Array(dataPoints).fill(null),
+                borderColor: color,
+                tension: 0.1,
+                fill: false
+            }];
+
+            if (includeSecondDataset) {
+                datasets.push({
+                    label: 'Messages Consumed',
+                    data: Array(dataPoints).fill(null),
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false
+                });
+            }
+
+            return new Chart(ctx, {
+                type: 'line',
+                data: { labels: Array(dataPoints).fill(''), datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: includeSecondDataset ? 50 : 100,
+                            title: { display: true, text: includeSecondDataset ? 'Messages per second' : 'Usage (%)' }
+                        },
+                        x: { title: { display: true, text: 'Time' } }
+                    },
+                    animation: { duration: 0 },
+                    plugins: { legend: { display: includeSecondDataset } }
+                }
+            });
+        }
+
+        function createNginxChart() {
+            const ctx = document.getElementById('nginxChart').getContext('2d');
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Server 1', 'Server 2', 'Server 3'],
+                    datasets: [{
+                        label: 'Request Rate',
+                        data: [0, 0, 0],
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Response Time (ms)',
+                        data: [0, 0, 0],
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Value' }
+                        }
+                    },
+                    animation: { duration: 0 },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Nginx Load Balancer Metrics'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createAPMChart() {
+            const ctx = document.getElementById('apmChart').getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(dataPoints).fill(''),
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: Array(dataPoints).fill(null),
+                        borderColor: 'rgb(255, 159, 64)',
+                        tension: 0.1,
+                        fill: false
+                    }, {
+                        label: 'Error Rate (%)',
+                        data: Array(dataPoints).fill(null),
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Value' }
+                        },
+                        x: { title: { display: true, text: 'Time' } }
+                    },
+                    animation: { duration: 0 },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Application Performance Metrics'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            updateChart(cpuChart, [Math.floor(Math.random() * 100)]);
+            
+            const messagesPublished = Math.floor(Math.random() * 50);
+            const messagesConsumed = Math.floor(Math.random() * 40);
+            updateChart(mqChart, [messagesPublished, messagesConsumed]);
+
+            updateNginxChart();
+            updateAPMChart();
+
+            totalMessagesPublished += messagesPublished;
+            totalMessagesConsumed += messagesConsumed;
+
+            document.getElementById('memoryUsage').textContent = `${Math.floor(Math.random() * 100)}%`;
+            document.getElementById('diskIO').textContent = `${(Math.random() * 100).toFixed(1)} MB/s`;
+            document.getElementById('networkTraffic').textContent = `${(Math.random() * 1000).toFixed(1)} Mbps`;
+            document.getElementById('messagesPublished').textContent = totalMessagesPublished;
+            document.getElementById('messagesConsumed').textContent = totalMessagesConsumed;
+            document.getElementById('activeConnections').textContent = Math.floor(Math.random() * 1000);
+            document.getElementById('errorRate').textContent = `${(Math.random() * 5).toFixed(2)}%`;
+            document.getElementById('avgResponseTime').textContent = `${Math.floor(Math.random() * 500)} ms`;
+
+            updateCICDStatus();
+        }
+
+        function updateChart(chart, newData) {
+            newData.forEach((value, index) => {
+                chart.data.datasets[index].data.push(value);
+                chart.data.datasets[index].data.shift();
+            });
+            chart.update('none');
+        }
+
+        function updateNginxChart() {
+            nginxChart.data.datasets[0].data = [
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100)
+            ];
+            nginxChart.data.datasets[1].data = [
+                Math.floor(Math.random() * 500),
+                Math.floor(Math.random() * 500),
+                Math.floor(Math.random() * 500)
+            ];
+            nginxChart.update('none');
+        }
+
+        function updateAPMChart() {
+            updateChart(apmChart, [
+                Math.floor(Math.random() * 500),
+                Math.floor(Math.random() * 5)
+            ]);
+        }
+
+        function updateCICDStatus() {
+            const statuses = ['success', 'failure', 'in-progress'];
+            const pipelines = ['Build', 'Test', 'Deploy to Staging', 'Deploy to Production'];
+            let html = '';
+            pipelines.forEach(pipeline => {
+                const status = statuses[Math.floor(Math.random() * statuses.length)];
+                html += `
+                    <div class="ci-cd-item">
+                        <span>${pipeline}</span>
+                        <span class="status ${status}">${status.replace('-', ' ')}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('cicdStatus').innerHTML = html;
+        }
+
+        function toggleSimulation() {
+            const button = document.querySelector('button');
+            if (isSimulationRunning) {
+                clearInterval(simulationInterval);
+                button.textContent = 'Start Simulation';
+            } else {
+                simulationInterval = setInterval(updateCharts, 1000);
+                button.textContent = 'Stop Simulation';
+            }
+            isSimulationRunning = !isSimulationRunning;
+        }
+
+        initCharts();
+    </script>
+</body>
+</html>
