@@ -43,29 +43,6 @@
             position: relative;
         }
 
-        /* Scrollbar styles */
-        .scroll-container::-webkit-scrollbar {
-            width: 8px;
-            /* Width of the scrollbar */
-        }
-
-        .scroll-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            /* Color of the track */
-        }
-
-        .scroll-container::-webkit-scrollbar-thumb {
-            background-color: #888;
-            /* Color of the scrollbar */
-            border-radius: 4px;
-            /* Roundness of the scrollbar */
-        }
-
-        .scroll-container::-webkit-scrollbar-thumb:hover {
-            background-color: #555;
-            /* Color of the scrollbar on hover */
-        }
-
         #output {
             font-family: monospace;
             font-size: 14px;
@@ -179,7 +156,7 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
 
         }
@@ -205,6 +182,39 @@
         .keyword p {
             margin: 10px 0;
             color: #555;
+            text-align: justify;
+            font-size: 14px;
+        }
+
+        pre {
+            text-wrap: wrap;
+            height: 200px;
+            font-family: monospace;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #222;
+            color: #0f0;
+            overflow-y: auto;
+        }
+
+        *::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
         }
     </style>
     <link rel="stylesheet" href="styles.css">
@@ -256,56 +266,188 @@
     </div>
     <button id="replayBtn">Replay Animation</button>
     <Br>
-        <h1>Important Ansible Keywords for Junior DevOps</h1>
+    <h1>Important Ansible Keywords for DevOps</h1>
+    <script>
+        function showExample(keyword) {
+            var examples = document.getElementsByClassName("code-example");
+            var example = document.getElementById(keyword);
+            if (example.style.display == 'none') {
+                example.style.display = "block";
+            } else {
+                example.style.display = "none";
+            }
+        }
+    </script>
 
     <div class="keyword-container">
         <div class="keyword">
             <h2>Playbook</h2>
-            <p>Think of it like a recipe book in YAML format...</p>
+            <p>A <b>Playbook</b> in Ansible is like a recipe book written in YAML format. It contains a series of steps,
+                known as tasks, that you want Ansible to execute on your servers. Each step is designed to perform a
+                specific operation, such as installing software, managing configurations, or handling files. Playbooks
+                allow you to automate complex workflows by defining them in a human-readable format, making your
+                infrastructure management more efficient and consistent.</p>
+            <button onclick="showExample('playbook')">Show Example</button>
+            <div class="code-example">
+                <pre id="playbook" style="display: none;">
+root@root:/$ cat playbook.yml
+
+- name: Example Playbook
+  hosts: all
+  tasks:
+    - name: Ensure nginx is installed
+      yum:
+        name: nginx
+        state: present
+                
+    - name: Ensure nginx service is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+                </pre>
+            </div>
         </div>
         <div class="keyword">
             <h2>Task</h2>
-            <p>Each step in the playbook. For example, installing a package...</p>
+            <p>A <b>Task</b> is an individual unit of work within a playbook. Think of it as a single action that
+                Ansible
+                performs on your servers. Tasks can include actions like installing a package, starting a service, or
+                copying a file. Each task uses a module to define what action to perform and can include parameters to
+                specify details. Tasks are executed in the order they appear in the playbook.</p>
+            <button onclick="showExample('task')">Show Example</button>
+            <div class="code-example">
+                <pre id="task" style="display: none;">
+- name: Ensure nginx is installed
+  yum:
+    name: nginx
+    state: present
+                    </pre>
+            </div>
         </div>
         <div class="keyword">
             <h2>Module</h2>
-            <p>Like a small program that Ansible runs on servers to do specific tasks...</p>
+            <p>A <b>Module</b> is a reusable, standalone script that Ansible uses to perform specific functions. Modules
+                are
+                the building blocks of tasks in a playbook. Ansible comes with hundreds of built-in modules for tasks
+                like
+                managing files, packages, services, and more. You can also write custom modules if the built-in ones
+                don’t
+                meet your needs. Modules abstract the complexity of the underlying commands, providing a simple
+                interface
+                for performing operations.</p>
+                <button onclick="showExample('module')">Show Example</button>
+                <div class="code-example">
+                    <pre id="module" style="display: none;">
+- name: Create a directory
+  file:
+    path: /path/to/directory
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'  
+                        </pre>
+                </div>
         </div>
         <div class="keyword">
             <h2>Inventory</h2>
-            <p>A list of servers you want Ansible to manage. It's like your address book for servers...</p>
+            <p>An <b>Inventory</b> is a list of servers that Ansible manages. It defines which hosts or groups of hosts
+                a
+                playbook should run against. Inventories can be as simple as a single text file listing IP addresses or
+                hostnames, or they can be more complex, using dynamic inventory scripts to pull host information from
+                cloud
+                providers or other sources. Properly managing your inventory is crucial for effective automation.
+            </p>
+            <button onclick="showExample('inventory')">Show Example</button>
+            <div class="code-example">
+                <pre id="inventory" style="display: none;">
+root@root:/$ cat inventory.ini
+                
+[web-servers]
+server1.example.com
+server2.example.com
+
+[database-servers]
+db1.example.com
+db2.example.com                    
+                    </pre>
+            </div>
         </div>
         <div class="keyword">
             <h2>Role</h2>
-            <p>A way to organize tasks into reusable groups...</p>
+            <p>A <b>Role</b> is a way to organize your playbooks into reusable components. Roles allow you to break down
+                complex playbooks into smaller, more manageable parts, each with its own tasks, variables, files,
+                templates,
+                and handlers. By using roles, you can create modular playbooks that are easier to maintain and reuse
+                across
+                different projects. Roles help in structuring your Ansible content in a more organized manner.</p>
         </div>
         <div class="keyword">
             <h2>Handler</h2>
-            <p>A special task that only runs when needed, like restarting a service after changes are made...</p>
+            <p>A <b>Handler</b> is a special type of task that is run only when another task notifies it. Handlers are
+                typically used for operations that should occur only if there has been a change on the system, such as
+                restarting a service after a configuration file has been updated. Handlers ensure that these operations
+                are
+                performed efficiently, avoiding unnecessary actions during playbook execution.</p>
         </div>
         <div class="keyword">
             <h2>Play</h2>
-            <p>A set of tasks that run together on a group of servers...</p>
+            <p>A <b>Play</b> is a section of a playbook that defines which hosts to target and what tasks to execute on
+                those hosts. Each play can target a different set of hosts and can include different tasks. Plays allow
+                you
+                to orchestrate complex deployments by dividing the overall workflow into smaller, more manageable parts.
+                Each play ensures that specific tasks are performed on the intended hosts.</p>
         </div>
         <div class="keyword">
             <h2>Facts</h2>
-            <p>Information Ansible gathers about each server...</p>
+            <p><b>Facts</b> are system properties collected by Ansible from remote hosts at the beginning of a playbook
+                run.
+                Facts include details such as IP addresses, operating system versions, hardware information, and more.
+                These
+                facts can be used within playbooks to make decisions, ensuring that tasks are executed correctly based
+                on
+                the actual state of the hosts. Facts help in writing dynamic and adaptive playbooks.</p>
         </div>
         <div class="keyword">
             <h2>Variables</h2>
-            <p>Placeholders for values that can change...</p>
+            <p><b>Variables</b> are placeholders used in playbooks to store values that can be reused throughout the
+                playbook. They allow you to parameterize your playbooks, making them more flexible and easier to manage.
+                Variables can be defined at various levels, including in playbooks, inventory files, roles, or even as
+                command-line arguments. Using variables helps to avoid hardcoding values and improves the
+                maintainability of
+                your automation scripts.</p>
         </div>
         <div class="keyword">
             <h2>Template</h2>
-            <p>A file that includes placeholders for values...</p>
+            <p>A <b>Template</b> is a file containing variables that Ansible replaces with actual values when the
+                template
+                is deployed to a remote host. Templates are typically written in Jinja2, a templating language. They are
+                used to generate dynamic configuration files based on the variables defined in your playbooks. Templates
+                enable you to create customized and flexible configuration files that adapt to different environments
+                and
+                scenarios.</p>
         </div>
         <div class="keyword">
             <h2>Vault</h2>
-            <p>A way to keep sensitive data secure in your playbooks or roles...</p>
+            <p>Ansible <b>Vault</b> is a feature that allows you to encrypt sensitive data within your playbooks or
+                roles.
+                This is essential for securing passwords, API keys, and other confidential information that you do not
+                want
+                to expose in plain text. Vault ensures that sensitive data is only accessible to those with the
+                appropriate
+                decryption key, enhancing the security of your automation processes.</p>
         </div>
         <div class="keyword">
             <h2>Ad-Hoc Command</h2>
-            <p>A quick command you can run from the terminal...</p>
+            <p>An <b>Ad-Hoc Command</b> is a quick, one-time command that you can use to perform simple tasks on remote
+                hosts without the need to write a playbook. These commands are useful for quick fixes or operations,
+                such as
+                checking the status of a service or rebooting a server. Ad-hoc commands are executed directly from the
+                command line and provide immediate results, making them handy for rapid troubleshooting or maintenance
+                tasks.
+                By understanding and effectively using these key concepts, you'll be well-equipped to harness the full
+                power
+                of Ansible for automating and managing your IT infrastructure.</p>
         </div>
     </div>
 
