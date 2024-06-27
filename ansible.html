@@ -171,12 +171,17 @@
         }
 
         .keyword-container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 1160px;
+            width: 100%;
+            /* margin: 0 auto; */
             background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+
         }
 
         h1 {
@@ -251,8 +256,9 @@
     </div>
     <button id="replayBtn">Replay Animation</button>
     <Br>
-    <div class="keyword-container">
         <h1>Important Ansible Keywords for Junior DevOps</h1>
+
+    <div class="keyword-container">
         <div class="keyword">
             <h2>Playbook</h2>
             <p>Think of it like a recipe book in YAML format...</p>
