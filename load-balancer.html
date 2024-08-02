@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Balancer Visualization</title>
+    <style>
+        .body-lb {
+            font-family: Arial, sans-serif;
+            /* display: flex;
+            justify-content: center;
+            align-items: center; */
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container-lb {
+            margin: 20px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .load-balancer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .server {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+            background-color: #ddd;
+            transition: background-color 0.3s;
+        }
+        .server.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .arrow {
+            font-size: 24px;
+            margin: 0 10px;
+        }
+        select, button {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        #requestCount {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        #rateSlider {
+            width: 70%;
+        }
+        #rateValue {
+            width: 30px;
+            text-align: right;
+        }
+        #explanation {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+        <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body class="body-lb">
+    <div class="navbar">
+        <a href="index.html">Home</a>
+        <a href="iac.html">IaC Provisioning</a>
+        <a href="cicd.html">CI/CD Pipeline</a>
+        <a href="monitoring.html">Monitoring</a>
+        <a href="ansible.html">Ansible</a>
+        <a href="load-balancer.html" class="active">Load Balancers</a>
+    </div>
+    
+    <div class="container-lb">
+        <h1>Load Balancer Visualization</h1>
+        <select id="algorithm">
+            <option value="roundRobin">Round Robin</option>
+            <option value="ipHash">IP Hash</option>
+            <option value="leastConnections">Least Connections</option>
+            <option value="leastResponseTime">Least Response Time</option>
+            <option value="leastBandwidth">Least Bandwidth</option>
+        </select>
+        <div class="load-balancer">
+            <div class="server">Load Balancer</div>
+            <span class="arrow">→</span>
+            <div>
+                <div class="server" id="server1">Server 1</div>
+                <div class="server" id="server2">Server 2</div>
+                <div class="server" id="server3">Server 3</div>
+            </div>
+        </div>
+        <div id="requestCount">Requests processed: 0</div>
+        <button id="startStop">Start</button>
+        <div class="slider-container">
+            <label for="rateSlider">Requests per second:</label>
+            <input type="range" id="rateSlider" min="1" max="10" value="1" step="1">
+            <span id="rateValue">1</span>
+        </div>
+        <div id="explanation"></div>
+    </div>
+
+    <script>
+        const servers = [
+            { id: 'server1', connections: 0, responseTime: 100, bandwidth: 100 },
+            { id: 'server2', connections: 0, responseTime: 150, bandwidth: 150 },
+            { id: 'server3', connections: 0, responseTime: 200, bandwidth: 200 }
+        ];
+        const ipAddresses = ['192.168.1.1', '10.0.0.1', '172.16.0.1'];
+        let currentServer = 0;
+        let requestCount = 0;
+        let intervalId = null;
+        let requestRate = 1;
+
+        const explanations = {
+            roundRobin: "Round Robin: Distributes requests sequentially to each server in turn. Simple and fair, but doesn't consider server load or capacity.",
+            ipHash: "IP Hash: Consistently maps specific client IP addresses to specific servers. Useful for maintaining session consistency for clients.",
+            leastConnections: "Least Connections: Sends new requests to the server with the fewest active connections. Good for evening out load across servers with different capacities.",
+            leastResponseTime: "Least Response Time: Directs traffic to the server with the lowest average response time. Helps maintain optimal performance for end-users.",
+            leastBandwidth: "Least Bandwidth: Routes requests to the server currently serving the least amount of traffic (in Mbps). Useful for preventing any single server from becoming a bottleneck."
+        };
+
+        function updateUI() {
+            servers.forEach((server, index) => {
+                const serverEl = document.getElementById(server.id);
+                serverEl.classList.toggle('active', index === currentServer);
+                serverEl.textContent = `${server.id.charAt(0).toUpperCase() + server.id.slice(1)}
+                    Conn: ${server.connections}, RT: ${server.responseTime}ms, BW: ${server.bandwidth}Mbps`;
+            });
+            document.getElementById('requestCount').textContent = `Requests processed: ${requestCount}`;
+            document.getElementById('explanation').textContent = explanations[document.getElementById('algorithm').value];
+        }
+
+        function distributeRequest() {
+            const algorithm = document.getElementById('algorithm').value;
+            switch(algorithm) {
+                case 'roundRobin':
+                    currentServer = (currentServer + 1) % servers.length;
+                    break;
+                case 'ipHash':
+                    const randomIP = ipAddresses[Math.floor(Math.random() * ipAddresses.length)];
+                    currentServer = randomIP.split('.').reduce((acc, octet) => acc + parseInt(octet), 0) % servers.length;
+                    break;
+                case 'leastConnections':
+                    currentServer = servers.reduce((min, server, index) => 
+                        server.connections < servers[min].connections ? index : min, 0);
+                    break;
+                case 'leastResponseTime':
+                    currentServer = servers.reduce((min, server, index) => 
+                        server.responseTime < servers[min].responseTime ? index : min, 0);
+                    break;
+                case 'leastBandwidth':
+                    currentServer = servers.reduce((min, server, index) => 
+                        server.bandwidth < servers[min].bandwidth ? index : min, 0);
+                    break;
+            }
+            servers[currentServer].connections++;
+            requestCount++;
+            updateUI();
+        }
+
+        function startSimulation() {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            intervalId = setInterval(() => {
+                for (let i = 0; i < requestRate; i++) {
+                    distributeRequest();
+                }
+            }, 1000);
+            document.getElementById('startStop').textContent = 'Stop';
+        }
+
+        function stopSimulation() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            document.getElementById('startStop').textContent = 'Start';
+        }
+
+        document.getElementById('startStop').addEventListener('click', function() {
+            if (intervalId) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        });
+
+        document.getElementById('algorithm').addEventListener('change', updateUI);
+
+        document.getElementById('rateSlider').addEventListener('input', function() {
+            requestRate = parseInt(this.value);
+            document.getElementById('rateValue').textContent = requestRate;
+            if (intervalId) {
+                startSimulation(); // Restart the simulation with the new rate
+            }
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
